@@ -13,13 +13,86 @@ const cardAccents = ['#1565D8', '#2EC4B6', '#1565D8', '#2EC4B6'];
 export function Services() {
   const sectionRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
-  const cardsRef   = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo(headingRef.current?.children || [], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: 'power3.out', scrollTrigger: { trigger: headingRef.current, start: 'top 80%', toggleActions: 'play none none reverse' } });
-      gsap.fromTo(cardsRef.current?.children || [], { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.15, ease: 'power3.out', scrollTrigger: { trigger: cardsRef.current, start: 'top 75%', toggleActions: 'play none none reverse' } });
+      // Enhanced heading animation
+      gsap.fromTo(
+        headingRef.current?.children || [],
+        { opacity: 0, y: 40 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.1,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: headingRef.current,
+            start: 'top 80%',
+            toggleActions: 'play none none reverse',
+          },
+        }
+      );
+
+      // Enhanced card animations with staggered reveals
+      gsap.fromTo(
+        cardsRef.current?.children || [],
+        { opacity: 0, y: 60, scale: 0.95 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.8,
+          stagger: 0.15,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: cardsRef.current,
+            start: 'top 75%',
+            toggleActions: 'play none none reverse',
+          },
+        }
+      );
+
+      // Only add 3D hover effects on non-touch devices
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        cardRefs.current.forEach((card) => {
+          if (!card) return;
+
+          card.addEventListener('mousemove', (e: MouseEvent) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const rotateX = (y - centerY) / 10;
+            const rotateY = (centerX - x) / 10;
+
+            gsap.to(card, {
+              rotationX: rotateX,
+              rotationY: rotateY,
+              transformPerspective: 1000,
+              duration: 0.6,
+              overwrite: 'auto',
+              ease: 'power2.out',
+            });
+          });
+
+          card.addEventListener('mouseleave', () => {
+            gsap.to(card, {
+              rotationX: 0,
+              rotationY: 0,
+              duration: 0.6,
+              ease: 'power2.out',
+            });
+          });
+        });
+      }
     }, sectionRef);
+
     return () => ctx.revert();
   }, []);
 
@@ -51,36 +124,74 @@ export function Services() {
             const accent = cardAccents[index];
             return (
               <div
+                ref={el => { cardRefs.current[index] = el; }}
                 key={index}
                 className="group relative bg-white rounded-3xl p-8 lg:p-10 overflow-hidden transition-all duration-300"
                 style={{
                   border: '1px solid rgba(21,101,216,0.1)',
                   boxShadow: '0 2px 16px rgba(21,101,216,0.05)',
+                  transformStyle: 'preserve-3d',
+                  perspective: '1000px',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-6px)'; (e.currentTarget as HTMLElement).style.boxShadow = `0 20px 50px rgba(21,101,216,0.12)`; (e.currentTarget as HTMLElement).style.borderColor = `${accent}40`; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 16px rgba(21,101,216,0.05)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(21,101,216,0.1)'; }}
+                onMouseEnter={e => {
+                  const element = e.currentTarget as HTMLElement;
+                  gsap.to(element, {
+                    y: -8,
+                    boxShadow: `0 25px 60px rgba(21,101,216,0.15)`,
+                    borderColor: `${accent}60`,
+                    duration: 0.3,
+                    ease: 'power2.out',
+                  });
+                }}
+                onMouseLeave={e => {
+                  const element = e.currentTarget as HTMLElement;
+                  gsap.to(element, {
+                    y: 0,
+                    rotationX: 0,
+                    rotationY: 0,
+                    boxShadow: '0 2px 16px rgba(21,101,216,0.05)',
+                    borderColor: 'rgba(21,101,216,0.1)',
+                    duration: 0.3,
+                    ease: 'power2.out',
+                  });
+                }}
               >
-                {/* Top accent bar */}
-                <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: `linear-gradient(90deg, ${accent}, ${accent === '#1565D8' ? '#2EC4B6' : '#1565D8'})` }} />
+                {/* Top accent bar with animation */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl transition-all duration-300"
+                  style={{
+                    background: `linear-gradient(90deg, ${accent}, ${accent === '#1565D8' ? '#2EC4B6' : '#1565D8'})`,
+                    boxShadow: `0 4px 12px ${accent}40`,
+                  }}
+                />
 
                 <div className="relative z-10">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 gradient-bg">
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-125 gradient-bg"
+                    style={{
+                      boxShadow: `0 8px 24px ${accent}30`,
+                    }}>
                     <Icon className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold mb-4 flex items-center gap-3" style={{ color: '#0F1D35' }}>
                     {service.title}
-                    <ArrowUpRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all duration-300" style={{ color: accent }} />
+                    <ArrowUpRight
+                      className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
+                      style={{ color: accent }}
+                    />
                   </h3>
                   <p className="leading-relaxed mb-6" style={{ color: '#4A6080' }}>{service.description}</p>
                   <a href="#contact" onClick={e => { e.preventDefault(); document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }); }}
-                    className="inline-flex items-center gap-2 font-semibold group/link" style={{ color: accent }}>
+                    className="inline-flex items-center gap-2 font-semibold group/link transition-all duration-300" style={{ color: accent }}>
                     <span className="relative">Learn More<span className="absolute bottom-0 left-0 w-0 h-0.5 group-hover/link:w-full transition-all duration-300" style={{ background: accent }} /></span>
-                    <ArrowUpRight className="w-4 h-4 group-hover/link:translate-x-1 group-hover/link:-translate-y-1 transition-transform" />
+                    <ArrowUpRight className="w-4 h-4 group-hover/link:translate-x-1.5 group-hover/link:-translate-y-1.5 transition-transform duration-300" />
                   </a>
                 </div>
 
-                {/* Corner glow */}
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-bl-full opacity-40" style={{ background: `radial-gradient(circle at top right, ${accent}14, transparent)` }} />
+                {/* Corner glow with animation */}
+                <div
+                  className="absolute top-0 right-0 w-32 h-32 rounded-bl-full opacity-30 group-hover:opacity-50 transition-opacity duration-300"
+                  style={{ background: `radial-gradient(circle at top right, ${accent}20, transparent)` }}
+                />
               </div>
             );
           })}
